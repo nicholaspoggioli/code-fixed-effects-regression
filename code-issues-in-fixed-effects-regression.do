@@ -56,7 +56,7 @@ sum _b_x, d		/*	Biased point estimate	*/
 
 gen model="1: Pooled OLS with Omitted Variable"
 compress
-save "C:\Dropbox\Projects\Papers-Working\fixed-effects-regression\code-fixed-effects-regression\ols_pool_misspec.dta", replace
+save "D:\Dropbox\Projects\Papers-Working\fixed-effects-regression\data-fixed-effects-regression\ols_pool_misspec.dta", replace
 
 
 ///	Pooled OLS with correct specification
@@ -90,7 +90,7 @@ simulate _b _se, reps(1000): dgp_ols_pool
 
 gen model="2: Pooled OLS with Correct Specification"
 compress
-save "C:\Dropbox\Projects\Papers-Working\fixed-effects-regression\code-fixed-effects-regression\ols_pool.dta", replace
+save "D:\Dropbox\Projects\Papers-Working\fixed-effects-regression\data-fixed-effects-regression\ols_pool.dta", replace
 
 
 ///	Pooled OLS with dummy variables for each frim
@@ -124,7 +124,7 @@ sum _b_x, d
 
 gen model="3: Pooled OLS with Firm Dummies"
 compress
-save "C:\Dropbox\Projects\Papers-Working\fixed-effects-regression\code-fixed-effects-regression\ols_pool_dummy.dta", replace
+save "D:\Dropbox\Projects\Papers-Working\fixed-effects-regression\data-fixed-effects-regression\ols_pool_dummy.dta", replace
 
 
 ///	Fixed effects
@@ -158,7 +158,7 @@ simulate _b _se, reps(1000): dgp_fe
 
 gen model="5: OLS-FE"
 compress
-save "C:\Dropbox\Projects\Papers-Working\fixed-effects-regression\code-fixed-effects-regression\ols_fe.dta", replace
+save "D:\Dropbox\Projects\Papers-Working\fixed-effects-regression\data-fixed-effects-regression\ols_fe.dta", replace
 
 
 
@@ -193,16 +193,16 @@ sum _b_x, d
 
 gen model="4: OLS-RE"
 compress
-save "C:\Dropbox\Projects\Papers-Working\fixed-effects-regression\code-fixed-effects-regression\ols_re.dta", replace
+save "D:\Dropbox\Projects\Papers-Working\fixed-effects-regression\data-fixed-effects-regression\ols_re.dta", replace
 
 
 
 ///	Combined data
-use "C:\Dropbox\Projects\Papers-Working\fixed-effects-regression\code-fixed-effects-regression\ols_pool_misspec.dta", clear
-append using "C:\Dropbox\Projects\Papers-Working\fixed-effects-regression\code-fixed-effects-regression\ols_fe.dta"
-append using "C:\Dropbox\Projects\Papers-Working\fixed-effects-regression\code-fixed-effects-regression\ols_pool.dta"
-append using "C:\Dropbox\Projects\Papers-Working\fixed-effects-regression\code-fixed-effects-regression\ols_re.dta"
-append using "C:\Dropbox\Projects\Papers-Working\fixed-effects-regression\code-fixed-effects-regression\ols_pool_dummy.dta"
+use "D:\Dropbox\Projects\Papers-Working\fixed-effects-regression\data-fixed-effects-regression\ols_pool_misspec.dta", clear
+append using "D:\Dropbox\Projects\Papers-Working\fixed-effects-regression\data-fixed-effects-regression\ols_fe.dta"
+append using "D:\Dropbox\Projects\Papers-Working\fixed-effects-regression\data-fixed-effects-regression\ols_pool.dta"
+append using "D:\Dropbox\Projects\Papers-Working\fixed-effects-regression\data-fixed-effects-regression\ols_re.dta"
+append using "D:\Dropbox\Projects\Papers-Working\fixed-effects-regression\data-fixed-effects-regression\ols_pool_dummy.dta"
 
 
 ///	Histogram by model
