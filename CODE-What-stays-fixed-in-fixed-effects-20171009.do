@@ -2,9 +2,8 @@
 *	What Fixed in Fixed Effects?
 *	By: Nicholas Poggioli (poggi005@umn.edu)
 *	
-*	Stata version 13.1
+*	Stata version 15.0
 ***=========================================
-
 
 ***============
 *	Environment
@@ -14,76 +13,116 @@ set more off
 set seed 61047
 
 
-***=============================
-*	True fixed effect assumption
-***=============================
-*	200 firms
+***===================
+*	Generate variables
+***===================
+***	200 firms
 set obs 200
 
 gen firm = _n
-label var firm "Firm-specific ID"
+label var firm "Firm"
 
-gen mu1 = floor(rnormal(20,3))
-label var mu1 "Unobserved firm fixed effect"
 
-*	Create 7 observations for each firm
+***	True fixed effect
+gen t_mu = runiformint(2,100)
+label var t_mu "True Firm Fixed Effect"
+
 expand 7
 
-bysort firm: gen year = _n + 2000
-label var year "Year of observation"
 
-gen rd = rnormal(11,8) + mu1
-label var rd "R&D expenditure (random + mu1)"
+*** False fixed effects
+gen f_mu1 = runiformint(49,51)
+label var f_mu1 "False Firm Fixed Effect (49-51)"
 
-gen e = 3*rnormal() + 3*mu1
-label var e "Error term (correlated with mu1)"
+gen f_mu2 = runiformint(50,60)
+label var f_mu2 "False Firm Fixed Effect (50-60)"
+
+gen f_mu3 = runiformint(20,90)
+label var f_mu3 "False Firm Fixed Effect (50-60)"
+
+
+***	7 year panel variables
+sort firm t_mu f_mu1 f_mu2 f_mu3
+by firm: gen year = _n + 2000
+label var year "Year"
+
+
+***==================
+*	True fixed effect
+***==================
+gen rd = rnormal(11,8) + t_mu
+label var rd "R&D Expenditure"
+
+gen e = 3*rnormal() + 3*t_mu
+label var e "Error"
 
 gen roa = rd + e
+label var roa "ROA"
 
-tempfile data_true
-save `data_true'
+tempfile t_fe
+save "`t_fe'"
 
+
+***================================================================
+*	False fixed effect
+*
+*	The higher the variance in the fixed effect, the worse the bias
+*
+*	TO DO: 	Adopt a variable naming convention that enables looping
+*			through regressions later in the code.
+***================================================================
+keep firm t_mu f_mu* year
+
+forvalues v = 1/3 {
+	gen rd`v' = rnormal(11,8) + f_mu`v'
+	label var rd`v' "R&D Expenditure with f_mu`v'"
+
+	gen e`v' = 3*rnormal() + 3*f_mu`v'
+	label var e`v' "Error with f_mu`v'"
+}
+
+forvalues v = 1/3 {
+	gen roa`v' = rd`v' + e`v'
+	label var roa`v' "ROA"
+}
+
+
+***============
+*	Append data
+***============
+append using `t_fe', gen(t_fe)
+label var t_fe "=1 if true fixed effect"
+
+
+***===========
 *	Regression
-reg roa rd
-est sto reg_true
+***===========
+
+*	Pooled robust regression
+est clear 
+forvalues v = 0/1 {
+	reg roa rd if t_fe==`v', robust
+	est sto reg_`v'
+}
+
+estout reg_0 reg_1 , cells(b(star fmt(%9.3f)) se(par))                ///
+        stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared))      ///
+        legend label varlabels(_cons Constant rd R&D)
+		
+
+
+*	Pooled regression clustered by firm
+forvalues v = 0(1)1 {
+	reg roa rd if t_fe==`v', cluster(firm)
+	est sto reg_`v'
+}
+
+
 
 xtset firm year
 xtreg roa rd, fe
 estimates store fe_true
 
-
-***==============================
-*	False fixed effect assumption
-***==============================
-clear
-
-*	200 firms
-set obs 200
-
-gen firm = _n
-label var firm "Firm-specific ID"
-
-*	Create 7 observations for each firm
-expand 7
-
-gen mu1 = floor(rnormal(20,3))
-label var mu1 "Unobserved firm fixed effect"
-
-bysort firm: gen year = _n + 2000
-label var year "Year of observation"
-
-gen rd = rnormal(11,8) + mu1
-label var rd "R&D expenditure (random + mu1)"
-
-gen e = 3*rnormal() + 3*mu1
-label var e "Error term (3*random + 3*mu1)"
-
-gen roa = rd + e
-label var roa "Return on assets (rd + e)"
-
-*	Regression
-reg roa rd
-est sto reg_false
 
 xtset firm year
 xtreg roa rd, fe
