@@ -20,11 +20,11 @@ set seed 61047
 *	200 firms
 set obs 200
 
-gen mu1 = floor(rnormal(20,3))
-label var mu1 "Unobserved firm fixed effect"
-
 gen firm = _n
 label var firm "Firm-specific ID"
+
+gen mu1 = floor(rnormal(20,3))
+label var mu1 "Unobserved firm fixed effect"
 
 *	Create 7 observations for each firm
 expand 7
