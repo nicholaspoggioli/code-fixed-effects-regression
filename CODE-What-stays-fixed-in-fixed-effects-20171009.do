@@ -31,18 +31,18 @@ expand 7
 
 
 *** False fixed effects
-gen f_mu1 = runiformint(49,51)
-label var f_mu1 "False Firm Fixed Effect (49-51)"
+gen m1_mu = runiformint(49,51)
+label var m1_mu "False Firm Fixed Effect (49-51)"
 
-gen f_mu2 = runiformint(50,60)
-label var f_mu2 "False Firm Fixed Effect (50-60)"
+gen m2_mu = runiformint(50,60)
+label var m2_mu "False Firm Fixed Effect (50-60)"
 
-gen f_mu3 = runiformint(20,90)
-label var f_mu3 "False Firm Fixed Effect (50-60)"
+gen m3_mu = runiformint(20,90)
+label var m3_mu "False Firm Fixed Effect (50-60)"
 
 
 ***	7 year panel variables
-sort firm t_mu f_mu1 f_mu2 f_mu3
+sort firm t_mu m1_mu m2_mu m3_mu
 by firm: gen year = _n + 2000
 label var year "Year"
 
@@ -51,13 +51,10 @@ label var year "Year"
 *	True fixed effect
 ***==================
 gen rd = rnormal(11,8) + t_mu
-label var rd "R&D Expenditure"
+label var rd "R&D with t_mu"
 
 gen e = 3*rnormal() + 3*t_mu
-label var e "Error"
-
-gen roa = rd + e
-label var roa "ROA"
+label var e "Error with t_mu"
 
 tempfile t_fe
 save "`t_fe'"
@@ -71,19 +68,14 @@ save "`t_fe'"
 *	TO DO: 	Adopt a variable naming convention that enables looping
 *			through regressions later in the code.
 ***================================================================
-keep firm t_mu f_mu* year
+keep firm t_mu m*mu year
 
 forvalues v = 1/3 {
-	gen rd`v' = rnormal(11,8) + f_mu`v'
-	label var rd`v' "R&D Expenditure with f_mu`v'"
+	gen m`v'_rd = rnormal(11,8) + m`v'_mu
+	label var m`v'_rd "R&D with m`v'_mu"
 
-	gen e`v' = 3*rnormal() + 3*f_mu`v'
-	label var e`v' "Error with f_mu`v'"
-}
-
-forvalues v = 1/3 {
-	gen roa`v' = rd`v' + e`v'
-	label var roa`v' "ROA"
+	gen m`v'_e = 3*rnormal() + 3*m`v'_mu
+	label var m`v'_e "Error with m`v'_mu"
 }
 
 
@@ -98,16 +90,31 @@ label var t_fe "=1 if true fixed effect"
 *	Regression
 ***===========
 
-*	Pooled robust regression
-est clear 
-forvalues v = 0/1 {
-	reg roa rd if t_fe==`v', robust
-	est sto reg_`v'
+*	Generate DV
+gen roa = rd + e if t_fe == 1
+label var roa "ROA with t_fe"
+
+forvalues v = 1/3 {
+	gen roa_m`v' = m`v'_rd + m`v'_e
+	label var roa_m`v' "ROA with m`v'_rd"
 }
 
-estout reg_0 reg_1 , cells(b(star fmt(%9.3f)) se(par))                ///
+*	Pooled robust regression
+est clear 
+
+reg roa rd, robust
+est sto reg_t
+
+forvalues v = 1/3 {
+	reg roa_m`v' m`v'_rd, robust
+	est sto reg_m`v'
+}
+
+estout reg_t reg_m1 reg_m2 reg_m3 , cells(b(star fmt(%9.3f)) se(par))                ///
         stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared))      ///
-        legend label varlabels(_cons Constant rd R&D)
+        legend label varlabels(_cons Constant) ///
+		mlabel("True FE, OVB" "False FE 1" "False FE 2" "False FE 3") ///
+		collabels(none)
 		
 
 
