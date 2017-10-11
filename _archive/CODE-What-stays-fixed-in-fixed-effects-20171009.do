@@ -24,7 +24,7 @@ label var firm "Firm"
 
 
 ***	True fixed effect
-gen t_mu = runiformint(2,100)
+gen t_mu = runiformint(0,10)
 label var t_mu "True Firm Fixed Effect"
 
 expand 7
@@ -56,9 +56,6 @@ label var rd "R&D with t_mu"
 gen e = 3*rnormal() + 3*t_mu
 label var e "Error with t_mu"
 
-tempfile t_fe
-save "`t_fe'"
-
 
 ***================================================================
 *	False fixed effect
@@ -68,8 +65,6 @@ save "`t_fe'"
 *	TO DO: 	Adopt a variable naming convention that enables looping
 *			through regressions later in the code.
 ***================================================================
-keep firm t_mu m*mu year
-
 forvalues v = 1/3 {
 	gen m`v'_rd = rnormal(11,8) + m`v'_mu
 	label var m`v'_rd "R&D with m`v'_mu"
@@ -78,20 +73,10 @@ forvalues v = 1/3 {
 	label var m`v'_e "Error with m`v'_mu"
 }
 
-
 ***============
-*	Append data
-***============
-append using `t_fe', gen(t_fe)
-label var t_fe "=1 if true fixed effect"
-
-
-***===========
-*	Regression
-***===========
-
 *	Generate DV
-gen roa = rd + e if t_fe == 1
+***============
+gen roa = rd + e
 label var roa "ROA with t_fe"
 
 forvalues v = 1/3 {
@@ -99,14 +84,22 @@ forvalues v = 1/3 {
 	label var roa_m`v' "ROA with m`v'_rd"
 }
 
-*	Pooled robust regression
+rename (roa rd e) (t_roa t_rd t_e)
+order *, alpha
+order year, after(firm)
+
+***======================
+*	Pooled OLS Regression
+***======================
+
+*	Robust errors
 est clear 
 
-reg roa rd, robust
+qui reg t_roa t_rd, robust
 est sto reg_t
 
 forvalues v = 1/3 {
-	reg roa_m`v' m`v'_rd, robust
+	qui reg roa_m`v' m`v'_rd, robust
 	est sto reg_m`v'
 }
 
@@ -117,12 +110,49 @@ estout reg_t reg_m1 reg_m2 reg_m3 , cells(b(star fmt(%9.3f)) se(par))           
 		collabels(none)
 		
 
+***	Increasing FE standard deviation
+bysort firm: gen t_mu2=floor(rnormal(50, 5)) if _n==1
+replace t_mu2=t_mu2[_n-1] if t_mu2==.
 
-*	Pooled regression clustered by firm
-forvalues v = 0(1)1 {
-	reg roa rd if t_fe==`v', cluster(firm)
-	est sto reg_`v'
+bysort firm: gen t_mu3=floor(rnormal(50, 10)) if _n==1
+replace t_mu3=t_mu3[_n-1] if t_mu3==.
+		
+bysort firm: gen t_mu4=floor(rnormal(50, 20)) if _n==1
+replace t_mu4=t_mu4[_n-1] if t_mu4==.
+
+forvalues v = 2/4 {
+	gen rd`v' = rnormal() + t_mu`v'
+	gen e`v' = 3*rnormal() + t_mu`v'
+	gen roa`v' = rd`v' + e`v'
 }
+
+forvalues j = 2/4 {
+	qui reg roa`j' rd`j', robust
+	est sto reg_`j'
+}
+
+estout reg_2 reg_3 reg_4 , cells(b(star fmt(%9.3f)) se(par))                ///
+        stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared))      ///
+        legend label varlabels(_cons Constant) ///
+		collabels(none)
+
+		
+*	Pooled regression clustered by firm
+est clear 
+
+qui reg t_roa t_rd, cluster(firm)
+est sto reg_t
+
+forvalues v = 1/3 {
+	qui reg roa_m`v' m`v'_rd, cluster(firm)
+	est sto reg_m`v'
+}
+
+estout reg_t reg_m1 reg_m2 reg_m3 , cells(b(star fmt(%9.3f)) se(par))                ///
+        stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared))      ///
+        legend label varlabels(_cons Constant) ///
+		mlabel("True FE, OVB" "False FE 1" "False FE 2" "False FE 3") ///
+		collabels(none)
 
 
 
