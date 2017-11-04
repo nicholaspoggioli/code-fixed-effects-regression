@@ -38,42 +38,42 @@ gen m2_mu = runiformint(50,60)
 label var m2_mu "False Firm Fixed Effect (50-60)"
 
 gen m3_mu = runiformint(20,90)
-label var m3_mu "False Firm Fixed Effect (50-60)"
+label var m3_mu "False Firm Fixed Effect (20-90)"
 
 
 ***	True fixed effect
 sort firm t_mu m1_mu m2_mu m3_mu
-gen rd = rnormal(11,8) + t_mu
-label var rd "R&D with t_mu"
+gen t_rd = rnormal(11,8) + t_mu
+label var t_rd "R&D with t_mu"
 
-gen e = 3*rnormal() + 3*t_mu
-label var e "Error with t_mu"
+gen t_e = 3*rnormal() + 3*t_mu
+label var t_e "Error with t_mu"
 
 
 ***	Year
 by firm: gen year = _n + 2000
 label var year "Year"
 
+order firm year
 
 ***	Independent variables
 forvalues v = 1/3 {
-	gen m`v'_rd = rnormal(11,8) + m`v'_mu
-	label var m`v'_rd "R&D with m`v'_mu"
+	gen rd_f`v' = rnormal(11,8) + m`v'_mu
+	label var rd_f`v' "R&D with m`v'_mu"
 
-	gen m`v'_e = 3*rnormal() + 3*m`v'_mu
-	label var m`v'_e "Error with m`v'_mu"
+	gen e_f`v' = 3*rnormal() + 3*m`v'_mu
+	label var e_f`v' "Error with m`v'_mu"
 }
 
 ***	Dependent variable
-gen roa = rd + e
-label var roa "ROA with t_fe"
+gen t_roa = t_rd + t_e
+label var t_roa "ROA with t_fe"
 
 forvalues v = 1/3 {
-	gen roa_m`v' = m`v'_rd + m`v'_e
-	label var roa_m`v' "ROA with m`v'_rd"
+	gen roa_f`v' = rd_f`v' + e_f`v'
+	label var roa_f`v' "ROA with m`v'_rd"
 }
 
-rename (roa rd e) (t_roa t_rd t_e)
 order *, alpha
 order year, after(firm)
 
@@ -124,11 +124,11 @@ reg t_roa t_rd
 est sto reg_t
 
 forvalues v = 1/3 {
-	qui reg roa_m`v' m`v'_rd
-	est sto reg_m`v'
+	qui reg roa_f`v' rd_f`v'
+	est sto reg_f`v'
 }
 
-estout reg_t reg_m1 reg_m2 reg_m3 , cells(b(star fmt(%9.3f)) se(par))                ///
+estout reg_t reg_f1 reg_f2 reg_f3 , cells(b(star fmt(%9.3f)) se(par))                ///
         stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared))      ///
         legend label varlabels(_cons Constant) ///
 		mlabel("True FE, OVB" "False FE 1" "False FE 2" "False FE 3") ///
@@ -174,7 +174,7 @@ qui reg t_roa t_rd, cluster(firm)
 est sto reg_t
 
 forvalues v = 1/3 {
-	qui reg roa_m`v' m`v'_rd, cluster(firm)
+	qui reg roa_f`v' m`v'_rd, cluster(firm)
 	est sto reg_m`v'
 }
 
@@ -233,11 +233,11 @@ program define fe_t_ols, eclass
 	reg roa rd
 end
 
-simulate _b _se, reps(2000): fe_t_ols
+simulate _b _se, reps(200): fe_t_ols
 
 sum _b_rd, d
 
-histogram _b_rd, scheme(plottig) xline(1, lw(thick)) xlab(.75(.25)1.75) percent
+histogram _b_rd, scheme(plotplain) xline(1, lw(thick)) xlab(.75(.25)1.75) percent
 
 ***	True fixed effect, accounted for with FE
 capt program drop fe_t_fe
