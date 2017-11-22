@@ -95,7 +95,7 @@ estout dum1, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
 *	Fixed effects (mean differencing)
 xtset firm year, y
 xtreg roa_t rd_t, fe
-est sto fe1
+est sto md1
 
 estout dum1 fe1, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
 	stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared)) ///
@@ -157,7 +157,7 @@ estout reg_t reg_f1 reg_f2 reg_f3 , cells(b(star fmt(%9.3f)) se(par))           
 */
 	
 capt erase data_full.dta	
-forvalues v = 0(1)15 {
+forvalues v = 0(1)14 {
 	forvalues r = 1(1)10 {
 		display "`v'" "`r'"
 		clear all
