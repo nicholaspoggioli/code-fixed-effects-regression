@@ -23,7 +23,6 @@ clear all
 set more off
 set seed 61047
 
-
 ***=============================================================================///	Move this inside a program for each simulation
 *	Generate variables
 ***===================
@@ -35,30 +34,30 @@ label var firm "Firm"
 
 
 ***	True fixed effect
-gen mu_t = runiformint(40,60)
-label var mu_t "True Firm Fixed Effect"
+gen fixed_true = runiformint(40,60)
+label var fixed_true "True Firm Fixed Effect"
 
 expand 5
 
 
 *** False fixed effects
-gen mu_f1 = runiformint(49,51)
-label var mu_f1 "False Firm Fixed Effect (49-51)"
+gen fixed_false_1 = runiformint(49,51)
+label var fixed_false_1 "False Firm Fixed Effect (49-51)"
 
-gen mu_f2 = runiformint(40,60)
-label var mu_f2 "False Firm Fixed Effect (40-60)"
+gen fixed_false_2 = runiformint(40,60)
+label var fixed_false_2 "False Firm Fixed Effect (40-60)"
 
-gen mu_f3 = runiformint(20,80)
-label var mu_f3 "False Firm Fixed Effect (20-90)"
+gen fixed_false_3 = runiformint(20,80)
+label var fixed_false_3 "False Firm Fixed Effect (20-90)"
 
 
 ***	True fixed effect
-sort firm mu_t mu_f1 mu_f2 mu_f3
-gen rd_t = rnormal(11,8) + mu_t
-label var rd_t "R&D with mu_t"
+sort firm fixed_true fixed_false_1 fixed_false_2 fixed_false_3
+gen rd_true = rnormal(11,8) + fixed_true
+label var rd_true "R&D with fixed_true"
 
-gen e_t = 3*rnormal() + 3*mu_t
-label var e_t "Error with mu_t"
+gen error_true = rnormal() + fixed_true
+label var error_true "Error with fixed_true"
 
 
 ***	Year
@@ -68,80 +67,62 @@ label var year "Year"
 order firm year
 
 ***	Independent variables
-forvalues v = 1/3 {
-	gen rd_f`v' = rnormal(11,8) + mu_f`v'
-	label var rd_f`v' "R&D with mu_f`v'"
+forvalues count = 1/3 {
+	gen rd_false_`count' = rnormal(11,8) + fixed_false_`count'
+	label var rd_false_`count' "R&D with mu_f`count'"
 
-	gen e_f`v' = 3*rnormal() + 3*mu_f`v'
-	label var e_f`v' "Error with mu_f`v'"
+	gen error_false_`count' = 3*rnormal() + 3*fixed_false_`count'
+	label var error_false_`count' "Error with mu_f`count'"
 }
 
 ***	Dependent variable
-gen roa_t = 1*rd_t + e_t
-label var roa_t "ROA with fe_t"
+gen roa_true = 1*rd_true + error_true
+label var roa_true "ROA with fe_t"
 
-forvalues v = 1/3 {
-	gen roa_f`v' = rd_f`v' + e_f`v'
-	label var roa_f`v' "ROA with rd_f`v'"
+forvalues count = 1/3 {
+	gen roa_false_`count' = rd_false_`count' + error_false_`count'
+	label var roa_false_`count' "ROA with rd_f`count'"
 }
 
-order *, alpha
-order year, after(firm)
+order firm year *_true *_false_1 *false_2 *false_3
 
 
 ***=============================================================================///	CONVERT THESE TO PROGRAMS AND SIMULATIONS
 *	Fixed effects works															///		TO DEMONSTRATE SAMPLING DISTRIBUTION
 ***====================
 *	Biased specification
-reg roa_t rd_t
-
+reg roa_true rd_true
+est sto pooled_true_bias
 
 *	Dummy-variable approach
-reg roa_t rd_t i.firm
-est sto dum1
+reg roa_true rd_t i.firm
+est sto dummy
 
-estout dum1, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
+estout pooled dummy, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
 	stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared)) ///
 	label varlabels(_cons Constant) ///
-	numbers collabels(none) mlab("Dummy")
+	numbers collabels(none) mlab("Pooled" "Dummy")
 
-*	Fixed effects (mean differencing)
+*	Fixed effects
 xtset firm year, y
-xtreg roa_t rd_t, fe
-est sto md1
+xtreg roa_true rd_true, fe
+est sto fe_true
 
-estout dum1 md1, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
-	stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared)) ///
+estout pooled dummy fe_true, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
+	stats(r2_a N N_g, fmt(%9.3f %9.0g) labels(R-squared Obs Groups)) ///
 	label varlabels(_cons Constant) ///
-	numbers collabels(none) mlab("Dummy" "Mean Dif")
-
-*	Random effects
-xtreg roa_t rd_t, re
-est sto re1
-
-estout dum1 md1 re1, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
-	stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared)) ///
-	label varlabels(_cons Constant) ///
-	numbers collabels(none) mlab("Dummy" "Mean Dif" "RE")
-
-hausman re1	md1
-
+	numbers collabels(none) mlab("Pooled" "Dummy" "FE True")
 
 	
 ***=============================================================================
 *	Pooled OLS Regression
 ***======================
-est clear 
-
-reg roa_t rd_t
-est sto reg_t
-
 forvalues v = 1/3 {
-	qui reg roa_f`v' rd_f`v'
-	est sto reg_f`v'
+	qui reg roa_false_`v' rd_false_`v'
+	est sto pooled_false_`v'
 }
 
-estout reg_t reg_f1 reg_f2 reg_f3 , cells(b(star fmt(%9.3f)) se(par))                ///
+estout pooled_true_bias pooled_false_1 pooled_false_2 pooled_false_3 , cells(b(star fmt(%9.3f)) se(par))                ///
         stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared))      ///
         legend label varlabels(_cons Constant) ///
 		mlabel("True FE, OVB" "False FE 1" "False FE 2" "False FE 3") ///
@@ -210,18 +191,18 @@ scatter b sd_w, scheme(plotplain) msize(tiny) ylab(0(.5)4) xlab(0(2)14) ///		///
 
 /*
 ***	Increasing FE standard deviation
-bysort firm: gen mu_t2=floor(rnormal(50, 5)) if _n==1
-replace mu_t2=mu_t2[_n-1] if mu_t2==.
+bysort firm: gen fixed_true2=floor(rnormal(50, 5)) if _n==1
+replace fixed_true2=fixed_true2[_n-1] if fixed_true2==.
 
-bysort firm: gen mu_t3=floor(rnormal(50, 10)) if _n==1
-replace mu_t3=mu_t3[_n-1] if mu_t3==.
+bysort firm: gen fixed_true3=floor(rnormal(50, 10)) if _n==1
+replace fixed_true3=fixed_true3[_n-1] if fixed_true3==.
 		
-bysort firm: gen mu_t4=floor(rnormal(50, 20)) if _n==1
-replace mu_t4=mu_t4[_n-1] if mu_t4==.
+bysort firm: gen fixed_true4=floor(rnormal(50, 20)) if _n==1
+replace fixed_true4=fixed_true4[_n-1] if fixed_true4==.
 
 forvalues v = 2/4 {
-	gen rd`v' = rnormal() + mu_t`v'
-	gen e`v' = 3*rnormal() + mu_t`v'
+	gen rd`v' = rnormal() + fixed_true`v'
+	gen e`v' = 3*rnormal() + fixed_true`v'
 	gen roa`v' = rd`v' + e`v'
 }
 
@@ -239,7 +220,7 @@ estout reg_2 reg_3 reg_4 , cells(b(star fmt(%9.3f)) se(par))                ///
 *	Pooled regression clustered by firm
 est clear 
 
-qui reg roa_t rd_t, cluster(firm)
+qui reg roa_true rd_t, cluster(firm)
 est sto reg_t
 
 forvalues v = 1/3 {
