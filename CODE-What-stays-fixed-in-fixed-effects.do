@@ -38,7 +38,7 @@ label var firm "Firm"
 gen mu_t = runiformint(40,60)
 label var mu_t "True Firm Fixed Effect"
 
-expand 7
+expand 5
 
 
 *** False fixed effects
@@ -62,7 +62,7 @@ label var e_t "Error with mu_t"
 
 
 ***	Year
-by firm: gen year = _n + 2000
+by firm: gen year = _n + 1999
 label var year "Year"
 
 order firm year
@@ -77,7 +77,7 @@ forvalues v = 1/3 {
 }
 
 ***	Dependent variable
-gen roa_t = rd_t + e_t
+gen roa_t = 1*rd_t + e_t
 label var roa_t "ROA with fe_t"
 
 forvalues v = 1/3 {
@@ -92,6 +92,9 @@ order year, after(firm)
 ***=============================================================================///	CONVERT THESE TO PROGRAMS AND SIMULATIONS
 *	Fixed effects works															///		TO DEMONSTRATE SAMPLING DISTRIBUTION
 ***====================
+*	Biased specification
+reg roa_t rd_t
+
 
 *	Dummy-variable approach
 reg roa_t rd_t i.firm
@@ -107,7 +110,7 @@ xtset firm year, y
 xtreg roa_t rd_t, fe
 est sto md1
 
-estout dum1 fe1, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
+estout dum1 md1, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
 	stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared)) ///
 	label varlabels(_cons Constant) ///
 	numbers collabels(none) mlab("Dummy" "Mean Dif")
@@ -121,7 +124,7 @@ estout dum1 md1 re1, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
 	label varlabels(_cons Constant) ///
 	numbers collabels(none) mlab("Dummy" "Mean Dif" "RE")
 
-hausman re1	fe1
+hausman re1	md1
 
 
 	
