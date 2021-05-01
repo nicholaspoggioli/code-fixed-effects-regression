@@ -1,6 +1,6 @@
 capt log using fe_log.txt, text
 ***=========================================
-*	What Fixed in Fixed Effects?
+*	What Stays Fixed in Fixed Effects?
 *	By: Nicholas Poggioli (poggi005@umn.edu)
 *	
 ***=========================================
@@ -98,7 +98,7 @@ est sto pooled_true_bias
 reg roa_true rd_t i.firm
 est sto dummy
 
-estout pooled dummy, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
+estout pooled_true_bias dummy, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
 	stats(r2_a N, fmt(%9.3f %9.0g) labels(R-squared)) ///
 	label varlabels(_cons Constant) ///
 	numbers collabels(none) mlab("Pooled" "Dummy")
@@ -108,7 +108,7 @@ xtset firm year, y
 xtreg roa_true rd_true, fe
 est sto fe_true
 
-estout pooled dummy fe_true, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
+estout pooled_true_bias dummy fe_true, cells(b(star fmt(%9.3f)) se(par)) drop(*firm) ///
 	stats(r2_a N N_g, fmt(%9.3f %9.0g) labels(R-squared Obs Groups)) ///
 	label varlabels(_cons Constant) ///
 	numbers collabels(none) mlab("Pooled" "Dummy" "FE True")
@@ -176,10 +176,8 @@ forvalues v = 0(1)14 {
 	}
 }
 
-
 bysort std: egen mean_sd_w=mean(sd_w)
 replace mean_sd_w = round(mean_sd_w,.1)
-
 
 graph box b, over(mean_sd) scheme(plotplain) ylab(0(.5)4) yline(1)
 
