@@ -1,0 +1,48 @@
+
+. ***=========================================
+. *       What Stays Fixed in Fixed Effects?
+. *       By: Nicholas Poggioli (poggi005@umn.edu)
+. *       
+. ***=========================================
+. 
+. ***=============================================================================
+. /*      Outline: Demonstrate the following
+>         1)      Fixed effects controls for unobserved, time-invariant confounds
+>         2)      FE becomes less useful as confounds become more time-varying
+>         3)      Specify a common model in strategy: R&D on Profitability
+>                 a)      Assume CEO effect picked up by fixed effect
+>                 b)      Demonstrate what happens when CEO does not remain constant through panel
+> */
+. 
+. ***=============================================================================
+. *       Environment
+. ***============
+. version
+version 15.1
+
+. 
+. clear all
+
+. set more off
+
+. set seed 61047  /// set seed
+> 
+
+. ***=============================================================================
+. *       Generate variables
+. ***===================
+. 
+. set obs 200                                                             /// number of firms
+> 
+number of observations (_N) was 0, now 200
+
+. gen firm = _n                                                   ///     firm identifier
+> label var firm "firm id"                                        
+invalid 'label' 
+r(198);
+
+end of do-file
+
+r(198);
+
+. exit, clear

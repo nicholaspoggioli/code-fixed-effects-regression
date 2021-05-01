@@ -17,46 +17,43 @@ capt log using fe_log.txt, text
 ***=============================================================================
 *	Environment
 ***============
-version
-
+set seed 61047	// set seed
+version			// display stata version number
 clear all
 set more off
-set seed 61047
 
-***=============================================================================///	Move this inside a program for each simulation
+***=============================================================================
 *	Generate variables
 ***===================
-***	200 firms
-set obs 200
-
-gen firm = _n
-label var firm "Firm"
+set obs 200		// number of firms
+gen firm = _n	//	firm identifier
+label var firm "firm id"
 
 
 ***	True fixed effect
-gen fixed_true = runiformint(40,60)
-label var fixed_true "True Firm Fixed Effect"
+gen fe_true = runiformint(40,60)		// uniform distro between 40 and 60
+label var fe_true "True Firm Fixed Effect"
 
-expand 5
+expand 5	//	5 observations per firm, N = 1000
 
 
 *** False fixed effects
-gen fixed_false_1 = runiformint(49,51)
-label var fixed_false_1 "False Firm Fixed Effect (49-51)"
+gen fe_false_1 = runiformint(49,51)
+label var fe_false_1 "False Firm Fixed Effect (49-51)"
 
-gen fixed_false_2 = runiformint(40,60)
-label var fixed_false_2 "False Firm Fixed Effect (40-60)"
+gen fe_false_2 = runiformint(40,60)
+label var fe_false_2 "False Firm Fixed Effect (40-60)"
 
-gen fixed_false_3 = runiformint(20,80)
-label var fixed_false_3 "False Firm Fixed Effect (20-90)"
+gen fe_false_3 = runiformint(20,80)
+label var fe_false_3 "False Firm Fixed Effect (20-90)"
 
 
 ***	True fixed effect
-sort firm fixed_true fixed_false_1 fixed_false_2 fixed_false_3
-gen rd_true = rnormal(11,8) + fixed_true
+sort firm fe_true fe_false_1 fe_false_2 fe_false_3
+gen rd_true = rnormal(11,8) + fe_true
 label var rd_true "R&D with fixed_true"
 
-gen error_true = rnormal() + fixed_true
+gen error_true = rnormal() + fe_true
 label var error_true "Error with fixed_true"
 
 
@@ -68,10 +65,10 @@ order firm year
 
 ***	Independent variables
 forvalues count = 1/3 {
-	gen rd_false_`count' = rnormal(11,8) + fixed_false_`count'
+	gen rd_false_`count' = rnormal(11,8) + fe_false_`count'
 	label var rd_false_`count' "R&D with mu_f`count'"
 
-	gen error_false_`count' = 3*rnormal() + 3*fixed_false_`count'
+	gen error_false_`count' = 3*rnormal() + 3*fe_false_`count'
 	label var error_false_`count' "Error with mu_f`count'"
 }
 
@@ -181,8 +178,8 @@ replace mean_sd_w = round(mean_sd_w,.1)
 
 graph box b, over(mean_sd) scheme(plotplain) ylab(0(.5)4) yline(1)
 
-scatter b sd_w, scheme(plotplain) msize(tiny) ylab(0(.5)4) xlab(0(2)14) ///		/// CREATE THIS GRAPH FOR MULTIPLE STRENGTHS OF CORRELATION BETWEEN MU AND ERROR
-	yline(1)		
+scatter b sd_w, scheme(plotplain) msize(tiny) ylab(0(.5)4) xlab(0(2)14) ///		// CREATE THIS GRAPH FOR MULTIPLE STRENGTHS OF CORRELATION BETWEEN MU AND ERROR
+	yline(1)
 	
 		
 		
